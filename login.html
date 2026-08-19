@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Entrar — Base Comercial</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.3"></script>
+  <style>
+    :root { --navy:#081534; --gold:#c9a86a; --bg:#f5f6fa; --border:#e4e7ef; --muted:#6b7180; }
+    * { box-sizing:border-box; }
+    body { margin:0; min-height:100vh; display:grid; place-items:center; padding:24px; background:var(--bg); color:#161b2c; font-family:Inter,sans-serif; }
+    .card { width:min(420px,100%); padding:34px; background:#fff; border:1px solid var(--border); border-radius:18px; box-shadow:0 18px 55px -30px rgba(8,21,52,.35); }
+    .brand { display:flex; align-items:center; gap:12px; margin-bottom:30px; }
+    .mark { width:40px; height:40px; display:grid; place-items:center; border-radius:11px; background:linear-gradient(135deg,var(--gold),#a9824b); color:var(--navy); font:800 16px 'Plus Jakarta Sans'; }
+    h1 { margin:0; color:var(--navy); font:700 21px 'Plus Jakarta Sans'; }
+    .subtitle { margin:5px 0 0; color:var(--muted); font-size:13px; }
+    label { display:block; margin:16px 0 7px; color:#394052; font-size:12px; font-weight:700; }
+    input { width:100%; padding:12px 13px; border:1px solid var(--border); border-radius:9px; font:14px Inter; }
+    input:focus { outline:none; border-color:var(--gold); box-shadow:0 0 0 3px rgba(201,168,106,.15); }
+    button { width:100%; margin-top:22px; padding:12px 16px; border:0; border-radius:9px; background:var(--navy); color:#fff; font:600 14px Inter; cursor:pointer; }
+    button:disabled { opacity:.65; cursor:wait; }
+    .error { display:none; margin-top:15px; padding:11px 12px; border-radius:8px; background:#fbeaea; color:#963737; font-size:12px; }
+    .error.show { display:block; }
+  </style>
+</head>
+<body>
+  <main class="card">
+    <div class="brand">
+      <div class="mark">V</div>
+      <div><h1>Base Comercial</h1><p class="subtitle">Valor Consultoria &amp; Seguros</p></div>
+    </div>
+    <form id="loginForm">
+      <label for="email">E-mail</label>
+      <input id="email" type="email" autocomplete="email" required>
+      <label for="password">Senha</label>
+      <input id="password" type="password" autocomplete="current-password" required>
+      <button id="submitButton" type="submit">Entrar</button>
+      <div class="error" id="errorBox" role="alert"></div>
+    </form>
+  </main>
+  <script>
+    let client;
+    const form = document.getElementById('loginForm');
+    const button = document.getElementById('submitButton');
+    const errorBox = document.getElementById('errorBox');
+
+    async function getClient() {
+      if (client) return client;
+      const response = await fetch('/api/config');
+      const config = await response.json();
+      if (!response.ok) throw new Error(config.error || 'Aplicação ainda não configurada');
+      client = window.supabase.createClient(config.supabaseUrl, config.supabasePublishableKey);
+      const { data } = await client.auth.getSession();
+      if (data.session) window.location.replace('/');
+      return client;
+    }
+
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      errorBox.classList.remove('show');
+      button.disabled = true;
+      button.textContent = 'Entrando…';
+      try {
+        const supabaseClient = await getClient();
+        const { error } = await supabaseClient.auth.signInWithPassword({
+          email: document.getElementById('email').value.trim(),
+          password: document.getElementById('password').value,
+        });
+        if (error) throw error;
+        window.location.replace('/');
+      } catch (error) {
+        errorBox.textContent = error.message === 'Invalid login credentials' ? 'E-mail ou senha inválidos.' : error.message;
+        errorBox.classList.add('show');
+        button.disabled = false;
+        button.textContent = 'Entrar';
+      }
+    });
+
+    getClient().catch((error) => {
+      errorBox.textContent = error.message;
+      errorBox.classList.add('show');
+    });
+  </script>
+</body>
+</html>
