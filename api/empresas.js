@@ -2,6 +2,10 @@ const { getSupabaseAdmin, requireUser, handleApiError } = require('../lib/supaba
 
 const SEGMENTOS_PERMITIDOS = new Set([
   'Parceiro Contábil|',
+  'Construção Civil|',
+  'Condomínio|',
+  'Outros|',
+  'Transportadora|',
   'Transportadora|Micro',
   'Transportadora|Pequeno',
   'Transportadora|Médio',
@@ -10,10 +14,15 @@ const SEGMENTOS_PERMITIDOS = new Set([
 
 function safeSearch(value, max = 120) {
   return String(value || '')
-    .replace(/[,%()'"\\]/g, ' ')
+    .replace(/[.,%()'"\\/]/g, ' ')
     .replace(/\s+/g, ' ')
     .trim()
     .slice(0, max);
+}
+
+function safeCnaePrefix(value) {
+  const normalized = String(value || '').replace(/\D/g, '');
+  return normalized.length >= 2 && normalized.length <= 7 ? normalized : '';
 }
 
 function parseFilters(query) {
@@ -31,14 +40,33 @@ function parseFilters(query) {
     comTelefone: query.comTelefone === '1',
     comCelular: query.comCelular === '1',
     q: safeSearch(query.q),
+    qCnpj: (() => {
+      const normalized = String(query.q || '').replace(/\D/g, '');
+      return normalized.length >= 8 && normalized.length <= 14 ? normalized : '';
+    })(),
+    qCnae: safeCnaePrefix(query.q),
+    cnaeCodigo: safeCnaePrefix(query.cnaeCodigo),
+    cnaeDescricao: safeSearch(query.cnaeDescricao),
   };
 }
 
 function applyFilters(query, filters) {
   if (filters.q) {
     const term = `%${filters.q}%`;
-    query = query.or(`cnpj.ilike.${term},razao_social.ilike.${term},nome_fantasia.ilike.${term},nome_socio.ilike.${term}`);
+    const clauses = [
+      `cnpj.ilike.${term}`,
+      `razao_social.ilike.${term}`,
+      `nome_fantasia.ilike.${term}`,
+      `nome_socio.ilike.${term}`,
+      `descricao_cnae_principal.ilike.${term}`,
+    ];
+    if (filters.qCnpj) clauses.push(`cnpj.like.${filters.qCnpj}%`);
+    if (filters.qCnae) clauses.push(`cnae_principal.like.${filters.qCnae}%`);
+    query = query.or(clauses.join(','));
   }
+
+  if (filters.cnaeCodigo) query = query.like('cnae_principal', `${filters.cnaeCodigo}%`);
+  if (filters.cnaeDescricao) query = query.ilike('descricao_cnae_principal', `%${filters.cnaeDescricao}%`);
 
   if (filters.segmentos.length > 0) {
     const parts = filters.segmentos.map((value) => {
@@ -105,7 +133,7 @@ module.exports = async function handler(req, res) {
 
       let query = supabase
         .from('empresas')
-        .select('cnpj,razao_social,nome_fantasia,segmento,porte,cidade,uf,colaboradores_faixa,faturamento_faixa,capital_social,idade_empresa_anos,nome_socio,telefone,celular,email,is_cliente', { count: 'exact' })
+        .select('cnpj,razao_social,nome_fantasia,segmento,cnae_principal,descricao_cnae_principal,porte,cidade,uf,colaboradores_faixa,faturamento_faixa,capital_social,idade_empresa_anos,nome_socio,telefone,celular,email,is_cliente', { count: 'exact' })
         .order('razao_social', { ascending: true, nullsFirst: false })
         .range(from, from + pageSize - 1);
       query = applyFilters(query, filters);
@@ -127,7 +155,7 @@ module.exports = async function handler(req, res) {
 
       let previewQuery = supabase
         .from('empresas')
-        .select('cnpj,razao_social,segmento,porte,cidade,uf,nome_socio,email,telefone,celular')
+        .select('cnpj,razao_social,segmento,cnae_principal,descricao_cnae_principal,porte,cidade,uf,nome_socio,email,telefone,celular')
         .order('razao_social', { ascending: true, nullsFirst: false })
         .limit(20);
       previewQuery = applyFilters(previewQuery, filters);
@@ -158,14 +186,14 @@ module.exports = async function handler(req, res) {
     if (mode === 'export') {
       let query = supabase
         .from('empresas')
-        .select('cnpj,razao_social,nome_fantasia,segmento,porte,cidade,uf,nome_socio,telefone,celular,email,idade_empresa_anos')
+        .select('cnpj,razao_social,nome_fantasia,segmento,cnae_principal,descricao_cnae_principal,porte,cidade,uf,nome_socio,telefone,celular,email,idade_empresa_anos')
         .limit(50000);
       query = applyFilters(query, filters);
       const { data, error } = await query;
       if (error) throw error;
 
-      const headers = ['CNPJ', 'Razão Social', 'Nome Fantasia', 'Segmento', 'Porte', 'Cidade', 'UF', 'Sócio', 'Telefone', 'Celular', 'E-mail', 'Idade (anos)'];
-      const fields = ['cnpj', 'razao_social', 'nome_fantasia', 'segmento', 'porte', 'cidade', 'uf', 'nome_socio', 'telefone', 'celular', 'email', 'idade_empresa_anos'];
+      const headers = ['CNPJ', 'Razão Social', 'Nome Fantasia', 'Segmento', 'CNAE Principal', 'Descrição CNAE Principal', 'Porte', 'Cidade', 'UF', 'Sócio', 'Telefone', 'Celular', 'E-mail', 'Idade (anos)'];
+      const fields = ['cnpj', 'razao_social', 'nome_fantasia', 'segmento', 'cnae_principal', 'descricao_cnae_principal', 'porte', 'cidade', 'uf', 'nome_socio', 'telefone', 'celular', 'email', 'idade_empresa_anos'];
       const lines = (data || []).map((row) => fields.map((field) => csvEscape(row[field])).join(','));
       const csv = `\uFEFF${[headers.join(','), ...lines].join('\n')}`;
 
