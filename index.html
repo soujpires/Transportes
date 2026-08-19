@@ -1,0 +1,1254 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Base Comercial — Valor Consultoria & Seguros</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/@tabler/icons-webfont@2.47.0/tabler-icons.min.css">
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.3"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<style>
+  :root{
+    --navy:#081534;
+    --navy-2:#0f1f47;
+    --navy-3:#152a5c;
+    --gold:#c9a86a;
+    --gold-light:#e6d6ae;
+    --bg:#f5f6fa;
+    --surface:#ffffff;
+    --border:#e4e7ef;
+    --text:#161b2c;
+    --text-muted:#6b7180;
+    --text-faint:#9498a6;
+    --ok:#2f8f5b;
+    --radius:10px;
+    --radius-lg:16px;
+    --shadow: 0 1px 2px rgba(8,21,52,0.04), 0 8px 24px -12px rgba(8,21,52,0.10);
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{
+    font-family:'Inter', sans-serif;
+    background:var(--bg);
+    color:var(--text);
+    -webkit-font-smoothing:antialiased;
+  }
+  h1,h2,h3,.display{font-family:'Plus Jakarta Sans', sans-serif;}
+
+  /* ===== Layout shell ===== */
+  .shell{ display:grid; grid-template-columns:248px 1fr; min-height:100vh; }
+
+  /* ===== Sidebar ===== */
+  .sidebar{
+    background:linear-gradient(180deg, var(--navy) 0%, var(--navy-2) 100%);
+    color:#fff;
+    padding:28px 18px;
+    display:flex;
+    flex-direction:column;
+    position:sticky; top:0; height:100vh;
+  }
+  .brand{ padding:4px 10px 26px; }
+  .brand .mark{
+    display:flex; align-items:center; gap:10px;
+  }
+  .mark-icon{
+    width:34px; height:34px; border-radius:9px;
+    background:linear-gradient(135deg, var(--gold), #a9824b);
+    display:flex; align-items:center; justify-content:center;
+    font-family:'Plus Jakarta Sans'; font-weight:800; color:var(--navy); font-size:15px;
+    flex-shrink:0;
+  }
+  .brand .name{ font-family:'Plus Jakarta Sans'; font-weight:700; font-size:15.5px; line-height:1.2; }
+  .brand .sub{ font-size:11.5px; color:rgba(255,255,255,0.45); margin-top:2px; letter-spacing:.2px;}
+
+  .nav-section-label{
+    font-size:10.5px; text-transform:uppercase; letter-spacing:.08em;
+    color:rgba(255,255,255,0.32); margin:22px 10px 8px; font-weight:600;
+  }
+  .nav-item{
+    display:flex; align-items:center; gap:11px;
+    padding:10px 12px; border-radius:9px; cursor:pointer;
+    color:rgba(255,255,255,0.68); font-size:13.5px; font-weight:500;
+    transition:background .15s ease, color .15s ease;
+    margin-bottom:2px;
+  }
+  .nav-item i{ font-size:17px; width:18px; text-align:center; opacity:.85; }
+  .nav-item:hover{ background:rgba(255,255,255,0.06); color:#fff; }
+  .nav-item.active{ background:rgba(201,168,106,0.16); color:#fff; }
+  .nav-item.active i{ color:var(--gold); opacity:1; }
+
+  .sidebar-foot{
+    margin-top:auto; padding-top:18px; border-top:1px solid rgba(255,255,255,0.08);
+  }
+  .principles-toggle{
+    display:flex; align-items:center; gap:9px; padding:10px 12px; border-radius:9px;
+    color:rgba(255,255,255,0.5); font-size:12px; cursor:pointer;
+  }
+  .principles-toggle:hover{ color:rgba(255,255,255,0.8); }
+  .principles-toggle i{ font-size:15px; }
+
+  /* ===== Main ===== */
+  .main{ padding:32px 40px 60px; max-width:1180px; }
+  .topbar{
+    display:flex; align-items:center; justify-content:space-between; margin-bottom:28px;
+  }
+  .topbar h1{ font-size:21px; font-weight:700; letter-spacing:-.01em; }
+  .topbar .desc{ font-size:13px; color:var(--text-muted); margin-top:3px; }
+  .env-pill{
+    font-size:11px; font-weight:600; color:var(--ok); background:#e9f6ee;
+    padding:5px 10px; border-radius:20px; display:flex; align-items:center; gap:6px;
+    border:1px solid #d3ecdc;
+  }
+  .env-pill .dot{ width:6px; height:6px; border-radius:50%; background:var(--ok); }
+
+  .panel{
+    background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-lg);
+    box-shadow:var(--shadow);
+  }
+  .panel + .panel{ margin-top:20px; }
+  .panel-head{
+    padding:18px 22px; border-bottom:1px solid var(--border);
+    display:flex; align-items:center; justify-content:space-between;
+  }
+  .panel-head h2{ font-size:14.5px; font-weight:700; }
+  .panel-head .hint{ font-size:12px; color:var(--text-faint); margin-top:2px; font-weight:500;}
+  .panel-body{ padding:22px; }
+
+  /* ===== Import dropzone ===== */
+  .dropzone{
+    border:1.5px dashed #c7cce0; border-radius:var(--radius);
+    padding:34px 24px; text-align:center; cursor:pointer;
+    transition:border-color .15s, background .15s;
+    background:#fbfbfd;
+  }
+  .dropzone:hover{ border-color:var(--gold); background:#fdfaf4; }
+  .dropzone i{ font-size:26px; color:var(--gold); }
+  .dropzone .t1{ font-size:13.5px; font-weight:600; margin-top:10px; }
+  .dropzone .t2{ font-size:12px; color:var(--text-faint); margin-top:3px; }
+  .dropzone input{ display:none; }
+
+  .import-progress{ display:none; margin-top:18px; }
+  .import-progress.show{ display:block; }
+  .ip-head{ display:flex; justify-content:space-between; align-items:baseline; margin-bottom:8px; }
+  .ip-filename{ font-size:13px; font-weight:700; display:flex; align-items:center; gap:7px; }
+  .ip-filename i{ color:var(--gold); }
+  .ip-status{ font-size:12px; color:var(--text-faint); font-weight:600; }
+  .ip-bar-track{ height:8px; border-radius:20px; background:#eceef5; overflow:hidden; }
+  .ip-bar-fill{ height:100%; background:linear-gradient(90deg, var(--gold), #a9824b); border-radius:20px; width:0%; transition:width .2s ease; }
+  .ip-stats{ display:flex; gap:18px; margin-top:12px; }
+  .ip-stat{ font-size:12px; color:var(--text-muted); font-weight:600; }
+  .ip-stat b{ color:var(--navy); font-family:'Plus Jakarta Sans'; font-size:14px; }
+  .import-summary{
+    display:none; margin-top:16px; padding:14px 16px; border-radius:10px;
+    background:#e9f6ee; border:1px solid #d3ecdc; color:#1f6b41; font-size:13px; font-weight:600;
+    align-items:center; gap:10px;
+  }
+  .import-summary.show{ display:flex; }
+  .import-summary i{ font-size:18px; }
+  .import-error{
+    display:none; margin-top:16px; padding:14px 16px; border-radius:10px;
+    background:#fbeaea; border:1px solid #f1d0d0; color:#a33; font-size:13px; font-weight:600;
+    align-items:center; gap:10px;
+  }
+  .import-error.show{ display:flex; }
+
+  .import-features{
+    display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-top:16px;
+  }
+  .mini-feat{
+    display:flex; gap:9px; padding:12px; border:1px solid var(--border); border-radius:9px; background:#fbfbfd;
+  }
+  .mini-feat i{ color:var(--gold); font-size:16px; margin-top:1px; }
+  .mini-feat .l1{ font-size:12px; font-weight:700; }
+  .mini-feat .l2{ font-size:11px; color:var(--text-faint); margin-top:1px; line-height:1.35; }
+
+  /* ===== Search + filters ===== */
+  .search-row{ display:flex; gap:10px; margin-bottom:18px; }
+  .search-input{
+    flex:1; position:relative;
+  }
+  .search-input i{
+    position:absolute; left:14px; top:50%; transform:translateY(-50%); color:var(--text-faint); font-size:15px;
+  }
+  .search-input input{
+    width:100%; padding:11px 14px 11px 38px; border:1px solid var(--border); border-radius:9px;
+    font-size:13.5px; font-family:'Inter'; color:var(--text); background:#fbfbfd;
+  }
+  .search-input input:focus{ outline:none; border-color:var(--gold); background:#fff; }
+  .btn{
+    border:none; border-radius:9px; font-family:'Inter'; font-weight:600; font-size:13px;
+    padding:11px 18px; cursor:pointer; display:inline-flex; align-items:center; gap:7px;
+    transition:transform .1s ease, opacity .15s ease;
+  }
+  .btn:active{ transform:scale(0.98); }
+  .btn-primary{ background:var(--navy); color:#fff; }
+  .btn-primary:hover{ background:var(--navy-3); }
+  .btn-gold{ background:var(--gold); color:var(--navy); }
+  .btn-gold:hover{ opacity:.9; }
+  .btn-ghost{ background:#fff; color:var(--text); border:1px solid var(--border); }
+  .btn-ghost:hover{ border-color:#c7cce0; }
+
+  .filters-grid{
+    display:grid; grid-template-columns:1.3fr 0.8fr 0.8fr 1fr; gap:16px; margin-bottom:16px;
+  }
+  .field label{ font-size:11.5px; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:.03em; display:block; margin-bottom:8px; }
+  .segment-chips{ display:flex; flex-wrap:wrap; gap:7px; }
+  .chip{
+    display:flex; align-items:center; gap:6px; padding:6px 11px 6px 8px; border-radius:20px;
+    border:1px solid var(--border); font-size:12px; font-weight:600; cursor:pointer; background:#fff;
+    color:var(--text-muted); user-select:none;
+  }
+  .chip .scale{ display:flex; align-items:flex-end; gap:1.5px; height:10px; }
+  .chip .scale i{ width:3px; background:var(--text-faint); border-radius:1px; display:block; }
+  .chip.active{ background:var(--navy); color:#fff; border-color:var(--navy); }
+  .chip.active .scale i{ background:var(--gold); }
+  .chip:hover:not(.active){ border-color:var(--gold); color:var(--text); }
+
+  select, .text-field{
+    width:100%; padding:9px 12px; border:1px solid var(--border); border-radius:8px;
+    font-size:13px; font-family:'Inter'; background:#fbfbfd; color:var(--text);
+  }
+  select:focus, .text-field:focus{ outline:none; border-color:var(--gold); background:#fff; }
+
+  .check-row{ display:flex; flex-direction:column; gap:9px; }
+  .check-item{ display:flex; align-items:center; gap:8px; font-size:12.5px; color:var(--text-muted); font-weight:500; }
+  .check-item input{ width:15px; height:15px; accent-color:var(--gold); }
+
+  /* ===== Collapsible filter group ===== */
+  .filter-group{ border:1px solid var(--border); border-radius:10px; background:#fbfbfd; margin-bottom:16px; overflow:hidden; }
+  .filter-group-head{
+    display:flex; align-items:center; justify-content:space-between;
+    padding:14px 16px; cursor:pointer; user-select:none;
+  }
+  .filter-group-head .left{ display:flex; align-items:center; gap:10px; }
+  .filter-group-head .fg-title{ font-size:15px; font-weight:700; color:var(--text); }
+  .filter-group-head .fg-count{
+    font-size:11px; font-weight:700; color:var(--navy); background:var(--gold-light);
+    padding:2px 8px; border-radius:20px; display:none;
+  }
+  .filter-group-head .fg-count.show{ display:inline-block; }
+  .filter-group-head .chevron{
+    font-size:15px; color:var(--text-faint); transition:transform .18s ease;
+  }
+  .filter-group.open .chevron{ transform:rotate(180deg); }
+  .filter-group-body{
+    max-height:0; overflow:hidden; transition:max-height .2s ease;
+    border-top:1px solid transparent;
+  }
+  .filter-group.open .filter-group-body{ border-top-color:var(--border); }
+  .filter-group-body-inner{ padding:14px 16px 16px; }
+  .fg-check-list{ display:flex; flex-direction:column; gap:2px; }
+  .fg-check-item{
+    display:flex; align-items:center; gap:10px; padding:8px 8px; border-radius:7px;
+    font-size:13px; font-weight:600; color:var(--text); cursor:pointer;
+  }
+  .fg-check-item:hover{ background:#f0f1f6; }
+  .fg-check-item input{ width:16px; height:16px; accent-color:var(--gold); flex-shrink:0; }
+  .fg-check-item .scale{ display:flex; align-items:flex-end; gap:1.5px; height:11px; margin-left:auto; }
+  .fg-check-item .scale i{ width:3px; background:var(--text-faint); border-radius:1px; display:block; }
+  .fg-check-item input:checked ~ .scale i{ background:var(--gold); }
+  .fg-check-item i.ti{ font-size:15px; color:var(--gold); margin-left:auto; }
+
+  .filters-footer{
+    display:flex; justify-content:space-between; align-items:center;
+    padding-top:16px; border-top:1px solid var(--border);
+  }
+  .filters-footer .clear{
+    display:inline-flex; align-items:center; gap:6px;
+    font-size:12.5px; color:#a33; cursor:pointer; font-weight:700;
+    padding:8px 14px; border-radius:8px; border:1.5px solid #f1d0d0; background:#fdf5f5;
+  }
+  .filters-footer .clear:hover{ background:#fbeaea; border-color:#e5b3b3; }
+  .filters-footer .clear i{ font-size:14px; }
+
+  /* ===== Results ===== */
+  .stat-grid{ display:grid; grid-template-columns:repeat(4,1fr); gap:14px; padding:22px; }
+  .stat-card{
+    border:1px solid var(--border); border-radius:12px; padding:16px 18px; background:#fbfbfd;
+  }
+  .stat-card .val{ font-family:'Plus Jakarta Sans'; font-size:26px; font-weight:800; color:var(--navy); }
+  .stat-card .lbl{ font-size:12px; color:var(--text-muted); font-weight:600; margin-top:3px; display:flex; align-items:center; gap:6px;}
+  .stat-card .lbl i{ font-size:13px; color:var(--gold); }
+  .results-actions{ display:flex; gap:10px; padding:0 22px 22px; }
+
+  table{ width:100%; border-collapse:collapse; font-size:12.5px; }
+  thead th{
+    text-align:left; padding:10px 14px; background:#fbfbfd; color:var(--text-faint);
+    font-weight:700; text-transform:uppercase; font-size:10.5px; letter-spacing:.04em;
+    border-top:1px solid var(--border); border-bottom:1px solid var(--border);
+  }
+  tbody td{ padding:12px 14px; border-bottom:1px solid var(--border); color:var(--text); }
+  tbody tr:hover{ background:#fbfbfd; }
+  .seg-tag{
+    display:inline-flex; align-items:center; gap:5px; font-size:11px; font-weight:700;
+    padding:3px 9px; border-radius:20px; background:var(--gold-light); color:#6b551f;
+  }
+  .porte-tag{
+    display:inline-flex; align-items:center; gap:6px; font-size:11px; font-weight:700;
+    padding:3px 9px; border-radius:20px; background:#eef1f9; color:var(--navy-3);
+  }
+  .porte-tag .scale{ display:flex; align-items:flex-end; gap:1.5px; height:10px; }
+  .porte-tag .scale i{ width:3px; background:var(--navy-3); border-radius:1px; display:block; }
+  .porte-tag.na{ background:#f2f2f5; color:var(--text-faint); }
+  .muted{ color:var(--text-faint); }
+
+  .empty{
+    padding:50px 22px; text-align:center; color:var(--text-faint);
+  }
+  .empty i{ font-size:28px; color:#d5d9e6; }
+  .empty .t1{ font-size:13.5px; font-weight:600; color:var(--text-muted); margin-top:10px; }
+  .empty .t2{ font-size:12px; margin-top:3px; }
+
+  /* ===== Base (listagem expansível) ===== */
+  .base-toolbar{ display:flex; align-items:center; justify-content:space-between; padding:16px 22px; border-bottom:1px solid var(--border); }
+  .base-toolbar .count{ font-size:12.5px; color:var(--text-muted); font-weight:600; }
+  .base-table{ width:100%; border-collapse:collapse; }
+  .base-row{ cursor:pointer; }
+  .base-row td{ padding:13px 14px; border-bottom:1px solid var(--border); font-size:13px; }
+  .base-row:hover{ background:#fbfbfd; }
+  .base-row .rs{ font-weight:700; color:var(--text); }
+  .base-row .cnpj{ font-family:'Inter'; color:var(--text-muted); }
+  .base-row .expand-cell{ width:34px; text-align:center; }
+  .base-row .expand-cell i{ font-size:15px; color:var(--text-faint); transition:transform .18s ease; }
+  .base-row.open .expand-cell i{ transform:rotate(180deg); color:var(--gold); }
+  .client-badge{
+    display:inline-flex; align-items:center; gap:5px; font-size:10.5px; font-weight:700;
+    padding:3px 8px; border-radius:20px; background:#e9f6ee; color:var(--ok); margin-left:8px;
+  }
+  .base-detail-row td{ padding:0; border-bottom:1px solid var(--border); }
+  .base-detail{ max-height:0; overflow:hidden; transition:max-height .2s ease; background:#fbfbfd; }
+  .base-row.open + .base-detail-row .base-detail{ max-height:220px; }
+  .base-detail-inner{ padding:18px 22px 20px 46px; display:grid; grid-template-columns:repeat(4,1fr); gap:16px 20px; }
+  .detail-field .dl{ font-size:10.5px; text-transform:uppercase; letter-spacing:.04em; color:var(--text-faint); font-weight:700; margin-bottom:4px; }
+  .detail-field .dv{ font-size:13px; color:var(--text); font-weight:600; }
+  .base-detail-actions{ grid-column:1/-1; display:flex; justify-content:flex-end; padding-top:8px; border-top:1px solid var(--border); margin-top:4px; }
+
+  /* ===== History ===== */
+  .hist-file{ display:flex; align-items:center; gap:9px; font-weight:600; }
+  .hist-file i{ color:var(--gold); font-size:15px; }
+  .badge-new{ background:#e9f6ee; color:var(--ok); font-weight:700; }
+  .badge-upd{ background:#eef1f9; color:var(--navy-3); font-weight:700; }
+  .badge-new, .badge-upd{ font-size:11px; padding:3px 8px; border-radius:6px; }
+
+  /* ===== Principles drawer ===== */
+  .overlay{
+    position:fixed; inset:0; background:rgba(8,21,52,0.45); display:none; align-items:center; justify-content:center; z-index:50;
+  }
+  .overlay.open{ display:flex; }
+  .modal{
+    background:#fff; border-radius:16px; max-width:440px; width:92%; padding:26px 26px 22px;
+  }
+  .modal h3{ font-size:15px; font-weight:700; margin-bottom:4px; }
+  .modal .sub{ font-size:12px; color:var(--text-faint); margin-bottom:18px; }
+  .principle{ display:flex; gap:10px; padding:11px 0; border-bottom:1px solid var(--border); font-size:13px; }
+  .principle:last-child{ border-bottom:none; }
+  .principle i{ color:var(--gold); font-size:15px; margin-top:2px; }
+  .modal-close{
+    margin-top:18px; width:100%; text-align:center; padding:10px; border-radius:8px;
+    background:var(--navy); color:#fff; font-weight:600; font-size:13px; cursor:pointer; border:none;
+  }
+
+  .view{ display:none; }
+  .view.active{ display:block; }
+
+  @media (max-width: 900px){
+    .shell{ grid-template-columns:1fr; }
+    .sidebar{ position:relative; height:auto; }
+    .filters-grid{ grid-template-columns:1fr 1fr; }
+    .import-features{ grid-template-columns:1fr 1fr; }
+    .stat-grid{ grid-template-columns:1fr 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div class="shell">
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="mark">
+        <div class="mark-icon">BC</div>
+        <div>
+          <div class="name">Base Comercial</div>
+          <div class="sub">Valor Consultoria & Seguros</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="nav-section-label">Módulo 1</div>
+    <div class="nav-item active" data-view="importar"><i class="ti ti-file-import"></i>Importação</div>
+    <div class="nav-item" data-view="pesquisar"><i class="ti ti-search"></i>Pesquisa & Filtros</div>
+    <div class="nav-item" data-view="base"><i class="ti ti-building-store"></i>Base</div>
+    <div class="nav-item" data-view="historico"><i class="ti ti-history"></i>Histórico de Importações</div>
+
+    <div class="nav-section-label">Em breve</div>
+    <div class="nav-item" style="opacity:.4; cursor:default;"><i class="ti ti-mail"></i>Automação (n8n)</div>
+
+    <div class="sidebar-foot">
+      <div class="principles-toggle" id="openPrinciples">
+        <i class="ti ti-info-circle"></i>Princípios do sistema
+      </div>
+      <div class="principles-toggle" id="logoutBtn">
+        <i class="ti ti-logout"></i>Sair
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main">
+    <div class="topbar">
+      <div>
+        <h1 id="pageTitle">Importação</h1>
+        <div class="desc" id="pageDesc">Importe a planilha, atualize empresas pelo CNPJ e deixe a classificação automática cuidar do resto.</div>
+      </div>
+      <div class="env-pill"><span class="dot"></span>Conectado ao LeadMap</div>
+    </div>
+
+    <!-- VIEW: IMPORTAR -->
+    <section class="view active" id="view-importar">
+      <div class="panel">
+        <div class="panel-head">
+          <div>
+            <h2>Importar planilha</h2>
+            <div class="hint">.xlsx — upsert automático por CNPJ</div>
+          </div>
+        </div>
+        <div class="panel-body">
+          <label class="dropzone" for="fileInput">
+            <i class="ti ti-cloud-upload"></i>
+            <div class="t1">Arraste o arquivo .xlsx ou clique para selecionar</div>
+            <div class="t2">Empresas existentes serão atualizadas pelo CNPJ · novos CNPJs serão cadastrados</div>
+            <input type="file" id="fileInput" accept=".xlsx">
+          </label>
+
+          <div class="import-progress" id="importProgress">
+            <div class="ip-head">
+              <div class="ip-filename"><i class="ti ti-file-spreadsheet"></i><span id="ipFilename">—</span></div>
+              <div class="ip-status" id="ipStatus">Lendo planilha…</div>
+            </div>
+            <div class="ip-bar-track"><div class="ip-bar-fill" id="ipBarFill"></div></div>
+            <div class="ip-stats">
+              <div class="ip-stat"><b id="ipProcessadas">0</b> processadas</div>
+              <div class="ip-stat"><b id="ipNovos">0</b> novos CNPJs</div>
+              <div class="ip-stat"><b id="ipAtualizadas">0</b> atualizadas</div>
+            </div>
+          </div>
+
+          <div class="import-summary" id="importSummary">
+            <i class="ti ti-circle-check"></i>
+            <span id="importSummaryText"></span>
+          </div>
+          <div class="import-error" id="importError">
+            <i class="ti ti-alert-circle"></i>
+            <span id="importErrorText"></span>
+          </div>
+
+          <div class="import-features">
+            <div class="mini-feat">
+              <i class="ti ti-refresh-dot"></i>
+              <div>
+                <div class="l1">Atualização por CNPJ</div>
+                <div class="l2">Registros existentes são atualizados, não duplicados</div>
+              </div>
+            </div>
+            <div class="mini-feat">
+              <i class="ti ti-adjustments"></i>
+              <div>
+                <div class="l1">Padronização automática</div>
+                <div class="l2">Campos normalizados no momento da importação</div>
+              </div>
+            </div>
+            <div class="mini-feat">
+              <i class="ti ti-category"></i>
+              <div>
+                <div class="l1">Classificação de segmento</div>
+                <div class="l2">CNAE (uso interno) define o Segmento Comercial</div>
+              </div>
+            </div>
+            <div class="mini-feat">
+              <i class="ti ti-calendar-stats"></i>
+              <div>
+                <div class="l1">Idade da empresa</div>
+                <div class="l2">Calculada automaticamente a partir da data de abertura</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- VIEW: PESQUISAR -->
+    <section class="view" id="view-pesquisar">
+      <div class="panel">
+        <div class="panel-body">
+          <div class="search-row">
+            <div class="search-input">
+              <i class="ti ti-search"></i>
+              <input type="text" placeholder="Buscar por CNPJ, Razão Social, Nome Fantasia ou Sócio">
+            </div>
+            <button class="btn btn-gold" id="gerarListaBtn"><i class="ti ti-list-details"></i>Gerar Lista</button>
+          </div>
+
+          <!-- Segmento Comercial (colapsável) -->
+          <div class="filter-group" id="fgSegmento">
+            <div class="filter-group-head" data-toggle="fgSegmento">
+              <div class="left">
+                <span class="fg-title">Segmento Comercial</span>
+                <span class="fg-count" id="fgSegmentoCount">0</span>
+              </div>
+              <i class="ti ti-chevron-down chevron"></i>
+            </div>
+            <div class="filter-group-body">
+              <div class="filter-group-body-inner">
+                <div class="fg-check-list">
+                  <label class="fg-check-item"><input type="checkbox" data-group="segmento" data-value="Parceiro Contábil|">Parceiros Contábeis<i class="ti ti-calculator"></i></label>
+                  <label class="fg-check-item"><input type="checkbox" data-group="segmento" data-value="Transportadora|Micro">Micro Transportadoras<span class="scale"><i style="height:4px"></i></span></label>
+                  <label class="fg-check-item"><input type="checkbox" data-group="segmento" data-value="Transportadora|Pequeno">Pequenas Transportadoras<span class="scale"><i style="height:4px"></i><i style="height:7px"></i></span></label>
+                  <label class="fg-check-item"><input type="checkbox" data-group="segmento" data-value="Transportadora|Médio">Médias Transportadoras<span class="scale"><i style="height:4px"></i><i style="height:7px"></i><i style="height:10px"></i></span></label>
+                  <label class="fg-check-item"><input type="checkbox" data-group="segmento" data-value="Transportadora|Grande">Grandes Transportadoras<span class="scale"><i style="height:4px"></i><i style="height:7px"></i><i style="height:10px"></i><i style="height:13px"></i></span></label>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="filters-grid" style="grid-template-columns:1fr 1fr 1fr;">
+            <div class="field">
+              <label>Estado (UF)</label>
+              <select id="filterUf"><option value="">Todos</option><option>GO</option><option>SP</option><option>MG</option><option>DF</option><option>MT</option></select>
+            </div>
+            <div class="field">
+              <label>Cidade</label>
+              <input class="text-field" id="filterCidade" type="text" placeholder="Todas">
+            </div>
+            <div class="field">
+              <label>Idade da empresa</label>
+              <select id="filterIdade"><option value="">Todas</option><option value="ate2">Até 2 anos</option><option value="2a5">2 a 5 anos</option><option value="acima5">Acima de 5 anos</option></select>
+            </div>
+          </div>
+
+          <!-- Contato disponível (colapsável) -->
+          <div class="filter-group" id="fgContato">
+            <div class="filter-group-head" data-toggle="fgContato">
+              <div class="left">
+                <span class="fg-title">Contato disponível</span>
+                <span class="fg-count" id="fgContatoCount">0</span>
+              </div>
+              <i class="ti ti-chevron-down chevron"></i>
+            </div>
+            <div class="filter-group-body">
+              <div class="filter-group-body-inner">
+                <div class="fg-check-list">
+                  <label class="fg-check-item"><input type="checkbox" id="filterComEmail">Apenas empresas com e-mail<i class="ti ti-mail"></i></label>
+                  <label class="fg-check-item"><input type="checkbox" id="filterComTelefone">Apenas empresas com telefone<i class="ti ti-phone"></i></label>
+                  <label class="fg-check-item"><input type="checkbox" id="filterComCelular">Apenas empresas com celular<i class="ti ti-device-mobile"></i></label>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="filters-footer">
+            <div class="clear" id="clearFiltersBtn"><i class="ti ti-eraser"></i>Limpar filtros</div>
+            <div style="font-size:12px; color:var(--text-faint);" id="filtersStatusText">Configure os filtros e clique em "Gerar Lista"</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head">
+          <div>
+            <h2>Resultado</h2>
+            <div class="hint">Clique em "Gerar Lista" para segmentar a base</div>
+          </div>
+        </div>
+
+        <div class="stat-grid">
+          <div class="stat-card"><div class="val" id="statTotal">—</div><div class="lbl"><i class="ti ti-building"></i>Empresas</div></div>
+          <div class="stat-card"><div class="val" id="statEmails">—</div><div class="lbl"><i class="ti ti-mail"></i>E-mails</div></div>
+          <div class="stat-card"><div class="val" id="statTelefones">—</div><div class="lbl"><i class="ti ti-phone"></i>Telefones</div></div>
+          <div class="stat-card"><div class="val" id="statCelulares">—</div><div class="lbl"><i class="ti ti-device-mobile"></i>Celulares</div></div>
+        </div>
+
+        <div class="results-actions" style="align-items:center; flex-wrap:wrap;">
+          <div class="field" style="margin:0;">
+            <select id="emailBatchSize" style="width:auto; padding:11px 14px;">
+              <option value="0">Tudo em 1 arquivo</option>
+              <option value="200">Lotes de 200</option>
+              <option value="500" selected>Lotes de 500</option>
+              <option value="1000">Lotes de 1000</option>
+            </select>
+          </div>
+          <button class="btn btn-ghost" id="copyEmailsBtn"><i class="ti ti-download"></i>Gerar arquivos de e-mail</button>
+          <button class="btn btn-ghost" id="exportExcelBtn"><i class="ti ti-file-spreadsheet"></i>Exportar Excel</button>
+        </div>
+
+        <table>
+          <thead>
+            <tr><th>Razão Social</th><th>Segmento</th><th>Porte</th><th>Cidade/UF</th><th>Sócio</th><th>Contato</th></tr>
+          </thead>
+          <tbody id="resultadosTableBody">
+            <tr><td colspan="6" style="padding:24px; text-align:center; color:var(--text-faint);">Nenhuma busca realizada ainda</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- VIEW: BASE -->
+    <section class="view" id="view-base">
+      <div class="panel">
+        <div class="base-toolbar">
+          <div class="count" id="baseCount">Carregando…</div>
+          <div class="search-input" style="max-width:280px;">
+            <i class="ti ti-search"></i>
+            <input type="text" id="baseSearchInput" placeholder="Buscar na base">
+          </div>
+        </div>
+        <table class="base-table">
+          <thead>
+            <tr><th style="width:34px;"></th><th>CNPJ</th><th>Nome Fantasia</th><th>Segmento</th><th>Porte</th></tr>
+          </thead>
+          <tbody id="baseTableBody">
+            <tr><td colspan="5" style="padding:24px; text-align:center; color:var(--text-faint);">Carregando…</td></tr>
+          </tbody>
+        </table>
+        <div style="display:flex; justify-content:space-between; align-items:center; padding:16px 22px; border-top:1px solid var(--border);">
+          <button class="btn btn-ghost" id="basePrevBtn"><i class="ti ti-chevron-left"></i>Anterior</button>
+          <div class="muted" id="basePageInfo" style="font-size:12.5px;"></div>
+          <button class="btn btn-ghost" id="baseNextBtn">Próxima<i class="ti ti-chevron-right"></i></button>
+        </div>
+      </div>
+    </section>
+
+    <!-- VIEW: HISTORICO -->
+    <section class="view" id="view-historico">
+      <div class="panel">
+        <div class="panel-head">
+          <div>
+            <h2>Histórico de Importações</h2>
+            <div class="hint">Cada planilha importada gera um registro de auditoria</div>
+          </div>
+        </div>
+        <table>
+          <thead>
+            <tr><th>Arquivo</th><th>Data</th><th>Empresas importadas</th><th>Atualizadas</th><th>Novos CNPJs</th></tr>
+          </thead>
+          <tbody id="historicoTableBody">
+            <tr><td colspan="5" style="padding:24px; text-align:center; color:var(--text-faint);">Carregando…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<!-- PRINCIPLES MODAL -->
+<div class="overlay" id="principlesOverlay">
+  <div class="modal">
+    <h3>Princípios do sistema</h3>
+    <div class="sub">O que a Base Comercial é — e o que ela não é</div>
+    <div class="principle"><i class="ti ti-x"></i>O sistema não é um CRM.</div>
+    <div class="principle"><i class="ti ti-x"></i>O sistema não dispara e-mails.</div>
+    <div class="principle"><i class="ti ti-x"></i>O sistema não gerencia leads.</div>
+    <div class="principle"><i class="ti ti-check"></i>Existe apenas para organizar bases comerciais e gerar listas segmentadas para prospecção.</div>
+    <button class="modal-close" id="closePrinciples">Entendi</button>
+  </div>
+</div>
+
+<script>
+  // ---- Autenticação (Supabase Auth) ----
+  let supabaseClient = null;
+  let currentSession = null;
+
+  async function initializeAuth() {
+    const response = await fetch('/api/config');
+    const config = await response.json();
+    if (!response.ok) throw new Error(config.error || 'Aplicação ainda não configurada');
+
+    supabaseClient = window.supabase.createClient(
+      config.supabaseUrl,
+      config.supabasePublishableKey
+    );
+
+    const { data } = await supabaseClient.auth.getSession();
+    if (!data.session) {
+      window.location.replace('/login.html');
+      return null;
+    }
+    currentSession = data.session;
+
+    supabaseClient.auth.onAuthStateChange((_event, session) => {
+      currentSession = session;
+      if (!session) window.location.replace('/login.html');
+    });
+
+    return data.session;
+  }
+
+  const authReady = initializeAuth().catch((error) => {
+    console.error(error);
+    window.location.replace('/login.html');
+    throw error;
+  });
+
+  // Wrapper: todo fetch às nossas APIs sai com o token de sessão anexado
+  async function authFetch(url, options = {}) {
+    await authReady;
+    const headers = { ...(options.headers || {}) };
+    if (currentSession) headers['Authorization'] = `Bearer ${currentSession.access_token}`;
+    return fetch(url, { ...options, headers });
+  }
+
+  document.getElementById('logoutBtn').addEventListener('click', async () => {
+    await authReady;
+    await supabaseClient.auth.signOut();
+    window.location.replace('/login.html');
+  });
+
+  // ---- Nav switching ----
+  const navItems = document.querySelectorAll('.nav-item[data-view]');
+  const views = document.querySelectorAll('.view');
+  const titles = {
+    importar: ['Importação', 'Importe a planilha, atualize empresas pelo CNPJ e deixe a classificação automática cuidar do resto.'],
+    pesquisar: ['Pesquisa & Filtros', 'Segmente a base e gere listas prontas para prospecção manual.'],
+    base: ['Base', 'Listagem completa de empresas cadastradas.'],
+    historico: ['Histórico de Importações', 'Auditoria de cada planilha importada na base.']
+  };
+  navItems.forEach(item => {
+    item.addEventListener('click', () => {
+      navItems.forEach(n => n.classList.remove('active'));
+      item.classList.add('active');
+      views.forEach(v => v.classList.remove('active'));
+      document.getElementById('view-' + item.dataset.view).classList.add('active');
+      const [t, d] = titles[item.dataset.view];
+      document.getElementById('pageTitle').textContent = t;
+      document.getElementById('pageDesc').textContent = d;
+    });
+  });
+
+  // ---- Segment chip toggle (multi-select) ----
+  document.querySelectorAll('.segment-chips .chip').forEach(chip => {
+    chip.addEventListener('click', () => chip.classList.toggle('active'));
+  });
+
+  // ---- Principles modal ----
+  const overlay = document.getElementById('principlesOverlay');
+  document.getElementById('openPrinciples').addEventListener('click', () => overlay.classList.add('open'));
+  document.getElementById('closePrinciples').addEventListener('click', () => overlay.classList.remove('open'));
+  overlay.addEventListener('click', e => { if (e.target === overlay) overlay.classList.remove('open'); });
+
+  // ---- Collapsible filter groups (Segmento Comercial / Contato disponível) ----
+  document.querySelectorAll('.filter-group-head').forEach(head => {
+    head.addEventListener('click', () => {
+      const group = document.getElementById(head.dataset.toggle);
+      const body = group.querySelector('.filter-group-body');
+      const inner = group.querySelector('.filter-group-body-inner');
+      const willOpen = !group.classList.contains('open');
+      group.classList.toggle('open', willOpen);
+      body.style.maxHeight = willOpen ? inner.scrollHeight + 'px' : '0px';
+    });
+  });
+
+  function updateFgCount(groupName, countEl){
+    const checked = document.querySelectorAll('input[data-group="' + groupName + '"]:checked').length;
+    countEl.textContent = checked;
+    countEl.classList.toggle('show', checked > 0);
+  }
+  document.querySelectorAll('input[data-group="segmento"]').forEach(cb => {
+    cb.addEventListener('change', () => updateFgCount('segmento', document.getElementById('fgSegmentoCount')));
+  });
+  document.querySelectorAll('input[data-group="contato"]').forEach(cb => {
+    cb.addEventListener('change', () => updateFgCount('contato', document.getElementById('fgContatoCount')));
+  });
+
+  // ---- Base: expandable rows + Marcar como cliente are wired dynamically below ----
+
+  // ---- Importação real: parse do .xlsx no navegador + upload em lotes ----
+  const BATCH_SIZE = 200;
+  const API_URL = "/api/importar-empresas";
+
+  const els = {
+    progress: document.getElementById('importProgress'),
+    filename: document.getElementById('ipFilename'),
+    status: document.getElementById('ipStatus'),
+    barFill: document.getElementById('ipBarFill'),
+    processadas: document.getElementById('ipProcessadas'),
+    novos: document.getElementById('ipNovos'),
+    atualizadas: document.getElementById('ipAtualizadas'),
+    summary: document.getElementById('importSummary'),
+    summaryText: document.getElementById('importSummaryText'),
+    error: document.getElementById('importError'),
+    errorText: document.getElementById('importErrorText'),
+  };
+
+  function chunkArray(arr, size) {
+    const out = [];
+    for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size));
+    return out;
+  }
+
+  async function postJSON(body) {
+    const resp = await authFetch(API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    const data = await resp.json();
+    if (!resp.ok) throw new Error(data.error || 'Falha na importação');
+    return data;
+  }
+
+  async function processarArquivo(file) {
+    els.error.classList.remove('show');
+    els.summary.classList.remove('show');
+    els.progress.classList.add('show');
+    els.filename.textContent = file.name;
+    els.status.textContent = 'Lendo planilha…';
+    els.barFill.style.width = '3%';
+    els.processadas.textContent = '0';
+    els.novos.textContent = '0';
+    els.atualizadas.textContent = '0';
+
+    try {
+      const buffer = await file.arrayBuffer();
+      const workbook = XLSX.read(buffer, { type: 'array', cellDates: true });
+      const sheet = workbook.Sheets[workbook.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(sheet, { defval: null });
+      if (rows.length === 0) throw new Error('A primeira aba da planilha está vazia');
+
+      const lotes = chunkArray(rows, BATCH_SIZE);
+      let totalProcessadas = 0, totalNovos = 0, totalAtualizadas = 0;
+
+      for (let i = 0; i < lotes.length; i++) {
+        els.status.textContent = `Enviando lote ${i + 1} de ${lotes.length}…`;
+        const result = await postJSON({ rows: lotes[i] });
+        totalProcessadas += result.processadas || 0;
+        totalNovos += result.novos || 0;
+        totalAtualizadas += result.atualizadas || 0;
+
+        els.processadas.textContent = totalProcessadas.toLocaleString('pt-BR');
+        els.novos.textContent = totalNovos.toLocaleString('pt-BR');
+        els.atualizadas.textContent = totalAtualizadas.toLocaleString('pt-BR');
+        els.barFill.style.width = Math.round(((i + 1) / lotes.length) * 100) + '%';
+      }
+
+      els.status.textContent = 'Concluído';
+      await postJSON({
+        action: 'finalize',
+        arquivo: file.name,
+        totalImportadas: totalProcessadas,
+        totalAtualizadas: totalAtualizadas,
+        totalNovos: totalNovos,
+      });
+
+      els.summaryText.textContent =
+        `${totalProcessadas.toLocaleString('pt-BR')} empresas processadas — ` +
+        `${totalNovos.toLocaleString('pt-BR')} novas, ${totalAtualizadas.toLocaleString('pt-BR')} atualizadas.`;
+      els.summary.classList.add('show');
+    } catch (err) {
+      console.error(err);
+      els.status.textContent = 'Erro';
+      els.errorText.textContent = 'Falha na importação: ' + err.message;
+      els.error.classList.add('show');
+    }
+  }
+
+  document.getElementById('fileInput').addEventListener('change', (e) => {
+    if (e.target.files.length) {
+      processarArquivo(e.target.files[0]);
+      e.target.value = '';
+    }
+  });
+
+  // =====================================================================
+  // TELA "BASE" — listagem real, paginada, com busca
+  // =====================================================================
+  const EMPRESAS_API = '/api/empresas';
+  let basePage = 1;
+  const basePageSize = 50;
+  let baseSearchTimer = null;
+
+  function escapeHtml(value) {
+    return String(value ?? '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
+  }
+
+  // Quando não há Nome Fantasia, a Razão Social de MEI costuma vir como
+  // "00.138.519 NOME DA PESSOA" — removemos o prefixo numérico do CNPJ base
+  function limparFallbackFantasia(razaoSocial) {
+    if (!razaoSocial) return null;
+    return razaoSocial.replace(/^\d{2}\.\d{3}\.\d{3}\s+/, '').trim();
+  }
+
+  function segTag(segmento) {
+    if (!segmento) return '<span class="seg-tag">—</span>';
+    const icon = segmento === 'Transportadora' ? 'ti-truck' : 'ti-calculator';
+    return `<span class="seg-tag"><i class="ti ${icon}"></i>${escapeHtml(segmento)}</span>`;
+  }
+
+  function porteTag(porte) {
+    if (!porte) return '<span class="porte-tag na">—</span>';
+    const bars = { Micro: 1, Pequeno: 2, Médio: 3, Grande: 4 }[porte] || 1;
+    let scale = '<span class="scale">';
+    for (let i = 1; i <= bars; i++) scale += `<i style="height:${i * 3 + 1}px"></i>`;
+    scale += '</span>';
+    return `<span class="porte-tag">${scale}${escapeHtml(porte)}</span>`;
+  }
+
+  function campo(label, valor) {
+    return `<div class="detail-field"><div class="dl">${escapeHtml(label)}</div><div class="dv">${escapeHtml(valor || '—')}</div></div>`;
+  }
+
+  function renderBaseRow(emp) {
+    const clienteBadge = emp.is_cliente ? '<span class="client-badge"><i class="ti ti-check"></i>Cliente</span>' : '';
+    const fantasia = emp.nome_fantasia || limparFallbackFantasia(emp.razao_social) || '—';
+    return `
+      <tr class="base-row" data-cnpj="${emp.cnpj}">
+        <td class="expand-cell"><i class="ti ti-chevron-down"></i></td>
+        <td class="cnpj">${escapeHtml(emp.cnpj)}</td>
+        <td class="rs">${escapeHtml(fantasia)}${clienteBadge}</td>
+        <td>${segTag(emp.segmento)}</td>
+        <td>${porteTag(emp.porte)}</td>
+      </tr>
+      <tr class="base-detail-row">
+        <td colspan="5">
+          <div class="base-detail">
+            <div class="base-detail-inner">
+              ${campo('Razão Social', emp.razao_social)}
+              ${campo('Cidade / UF', [emp.cidade, emp.uf].filter(Boolean).join(' / '))}
+              ${campo('Colaboradores', emp.colaboradores_faixa)}
+              ${campo('Faturamento', emp.faturamento_faixa)}
+              ${campo('Capital Social', emp.capital_social != null ? emp.capital_social.toLocaleString('pt-BR', {style:'currency', currency:'BRL'}) : null)}
+              ${campo('Idade da Empresa', emp.idade_empresa_anos != null ? emp.idade_empresa_anos + ' anos' : null)}
+              ${campo('Nome do Sócio', emp.nome_socio)}
+              ${campo('Telefone', emp.telefone)}
+              ${campo('Celular', emp.celular)}
+              ${campo('E-mail', emp.email)}
+              <div class="base-detail-actions">
+                ${emp.is_cliente
+                  ? '<button class="btn btn-ghost" disabled style="opacity:.6;"><i class="ti ti-check"></i>Já é cliente</button>'
+                  : '<button class="btn btn-gold btn-mark-client"><i class="ti ti-user-check"></i>Marcar como cliente</button>'}
+              </div>
+            </div>
+          </div>
+        </td>
+      </tr>`;
+  }
+
+  function wireBaseRowEvents() {
+    document.querySelectorAll('#baseTableBody .base-row').forEach(row => {
+      row.addEventListener('click', (e) => {
+        if (e.target.closest('.btn-mark-client')) return;
+        row.classList.toggle('open');
+      });
+    });
+    document.querySelectorAll('#baseTableBody .btn-mark-client').forEach(btn => {
+      btn.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        const row = btn.closest('.base-detail-row').previousElementSibling;
+        const cnpj = row.dataset.cnpj;
+        btn.disabled = true;
+        btn.textContent = 'Marcando…';
+        try {
+          const resp = await authFetch(EMPRESAS_API, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'marcar_cliente', cnpj }),
+          });
+          if (!resp.ok) throw new Error('Falha ao marcar cliente');
+          const nameCell = row.querySelector('.rs');
+          const badge = document.createElement('span');
+          badge.className = 'client-badge';
+          badge.innerHTML = '<i class="ti ti-check"></i>Cliente';
+          nameCell.appendChild(badge);
+          btn.innerHTML = '<i class="ti ti-check"></i>Marcado como cliente';
+        } catch (err) {
+          btn.disabled = false;
+          btn.innerHTML = '<i class="ti ti-user-check"></i>Marcar como cliente';
+          alert('Erro ao marcar como cliente: ' + err.message);
+        }
+      });
+    });
+  }
+
+  async function loadBase() {
+    const tbody = document.getElementById('baseTableBody');
+    tbody.innerHTML = '<tr><td colspan="5" style="padding:24px; text-align:center; color:var(--text-faint);">Carregando…</td></tr>';
+    const q = document.getElementById('baseSearchInput').value.trim();
+    const params = new URLSearchParams({ mode: 'list', page: basePage, pageSize: basePageSize });
+    if (q) params.set('q', q);
+
+    try {
+      const resp = await authFetch(`${EMPRESAS_API}?${params.toString()}`);
+      const data = await resp.json();
+      if (!resp.ok) throw new Error(data.error || 'Falha ao carregar');
+
+      if (!data.rows || data.rows.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" style="padding:24px; text-align:center; color:var(--text-faint);">Nenhuma empresa encontrada</td></tr>';
+      } else {
+        tbody.innerHTML = data.rows.map(renderBaseRow).join('');
+        wireBaseRowEvents();
+      }
+
+      const totalPages = Math.max(1, Math.ceil(data.total / basePageSize));
+      document.getElementById('baseCount').textContent = `${data.total.toLocaleString('pt-BR')} empresas na base`;
+      document.getElementById('basePageInfo').textContent = `Página ${basePage} de ${totalPages}`;
+      document.getElementById('basePrevBtn').disabled = basePage <= 1;
+      document.getElementById('baseNextBtn').disabled = basePage >= totalPages;
+    } catch (err) {
+      tbody.innerHTML = `<tr><td colspan="5" style="padding:24px; text-align:center; color:#a33;">Erro: ${escapeHtml(err.message)}</td></tr>`;
+    }
+  }
+
+  document.getElementById('baseSearchInput').addEventListener('input', () => {
+    clearTimeout(baseSearchTimer);
+    baseSearchTimer = setTimeout(() => { basePage = 1; loadBase(); }, 400);
+  });
+  document.getElementById('basePrevBtn').addEventListener('click', () => { basePage--; loadBase(); });
+  document.getElementById('baseNextBtn').addEventListener('click', () => { basePage++; loadBase(); });
+
+  let baseLoaded = false;
+  document.querySelector('.nav-item[data-view="base"]').addEventListener('click', () => {
+    if (!baseLoaded) { baseLoaded = true; loadBase(); }
+  });
+
+  // =====================================================================
+  // TELA "HISTÓRICO DE IMPORTAÇÕES"
+  // =====================================================================
+  function formatarData(iso) {
+    if (!iso) return '—';
+    const d = new Date(iso);
+    return d.toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+  }
+
+  async function loadHistorico() {
+    const tbody = document.getElementById('historicoTableBody');
+    tbody.innerHTML = '<tr><td colspan="5" style="padding:24px; text-align:center; color:var(--text-faint);">Carregando…</td></tr>';
+    try {
+      const resp = await authFetch(`${EMPRESAS_API}?mode=historico`);
+      const data = await resp.json();
+      if (!resp.ok) throw new Error(data.error || 'Falha ao carregar histórico');
+
+      if (!data.rows || data.rows.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="5">
+          <div class="empty">
+            <i class="ti ti-database-off"></i>
+            <div class="t1">Nenhuma importação registrada ainda</div>
+            <div class="t2">Assim que você importar uma planilha, ela aparece aqui</div>
+          </div>
+        </td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = data.rows.map(r => `
+        <tr>
+          <td class="hist-file"><i class="ti ti-file-spreadsheet"></i>${escapeHtml(r.arquivo)}</td>
+          <td class="muted">${formatarData(r.data_importacao)}</td>
+          <td>${(r.empresas_importadas || 0).toLocaleString('pt-BR')}</td>
+          <td><span class="badge-upd">${(r.empresas_atualizadas || 0).toLocaleString('pt-BR')}</span></td>
+          <td><span class="badge-new">${(r.novos_cnpjs || 0).toLocaleString('pt-BR')}</span></td>
+        </tr>
+      `).join('');
+    } catch (err) {
+      tbody.innerHTML = `<tr><td colspan="5" style="padding:24px; text-align:center; color:#a33;">Erro: ${escapeHtml(err.message)}</td></tr>`;
+    }
+  }
+
+  let historicoLoaded = false;
+  document.querySelector('.nav-item[data-view="historico"]').addEventListener('click', () => {
+    if (!historicoLoaded) { historicoLoaded = true; loadHistorico(); }
+  });
+
+  // =====================================================================
+  // TELA "PESQUISA & FILTROS" — filtros reais, stats reais, export
+  // =====================================================================
+  function coletarFiltros() {
+    const segmentos = Array.from(document.querySelectorAll('input[data-group="segmento"]:checked'))
+      .map(cb => cb.dataset.value);
+    return {
+      segmentos: segmentos.join(','),
+      uf: document.getElementById('filterUf').value,
+      cidade: document.getElementById('filterCidade').value.trim(),
+      idade: document.getElementById('filterIdade').value,
+      comEmail: document.getElementById('filterComEmail').checked ? '1' : '',
+      comTelefone: document.getElementById('filterComTelefone').checked ? '1' : '',
+      comCelular: document.getElementById('filterComCelular').checked ? '1' : '',
+    };
+  }
+
+  function buildParams(extra) {
+    const f = coletarFiltros();
+    const params = new URLSearchParams({ mode: 'search', ...extra });
+    if (f.segmentos) params.set('segmentos', f.segmentos);
+    if (f.uf) params.set('uf', f.uf);
+    if (f.cidade) params.set('cidade', f.cidade);
+    if (f.idade) params.set('idade', f.idade);
+    if (f.comEmail) params.set('comEmail', f.comEmail);
+    if (f.comTelefone) params.set('comTelefone', f.comTelefone);
+    if (f.comCelular) params.set('comCelular', f.comCelular);
+    return params;
+  }
+
+  function renderResultRow(r) {
+    const contato = r.email || r.celular || r.telefone || '—';
+    return `
+      <tr>
+        <td><strong>${escapeHtml(r.razao_social || '—')}</strong><div class="muted">${escapeHtml(r.cnpj)}</div></td>
+        <td>${segTag(r.segmento)}</td>
+        <td>${porteTag(r.porte)}</td>
+        <td>${escapeHtml([r.cidade, r.uf].filter(Boolean).join(' / ') || '—')}</td>
+        <td>${escapeHtml(r.nome_socio || '—')}</td>
+        <td class="muted">${escapeHtml(contato)}</td>
+      </tr>`;
+  }
+
+  document.getElementById('gerarListaBtn').addEventListener('click', async () => {
+    const btn = document.getElementById('gerarListaBtn');
+    const statusText = document.getElementById('filtersStatusText');
+    const tbody = document.getElementById('resultadosTableBody');
+    btn.disabled = true;
+    statusText.textContent = 'Gerando lista…';
+    tbody.innerHTML = '<tr><td colspan="6" style="padding:24px; text-align:center; color:var(--text-faint);">Carregando…</td></tr>';
+
+    try {
+      const params = buildParams({});
+      const resp = await authFetch(`${EMPRESAS_API}?${params.toString()}`);
+      const data = await resp.json();
+      if (!resp.ok) throw new Error(data.error || 'Falha na busca');
+
+      document.getElementById('statTotal').textContent = data.stats.total.toLocaleString('pt-BR');
+      document.getElementById('statEmails').textContent = data.stats.comEmail.toLocaleString('pt-BR');
+      document.getElementById('statTelefones').textContent = data.stats.comTelefone.toLocaleString('pt-BR');
+      document.getElementById('statCelulares').textContent = data.stats.comCelular.toLocaleString('pt-BR');
+
+      if (data.preview.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" style="padding:24px; text-align:center; color:var(--text-faint);">Nenhuma empresa encontrada com esses filtros</td></tr>';
+      } else {
+        tbody.innerHTML = data.preview.map(renderResultRow).join('');
+      }
+      statusText.textContent = data.stats.total > data.preview.length
+        ? `Mostrando ${data.preview.length} de ${data.stats.total.toLocaleString('pt-BR')} — use "Exportar Excel" para a lista completa`
+        : 'Lista gerada';
+    } catch (err) {
+      tbody.innerHTML = `<tr><td colspan="6" style="padding:24px; text-align:center; color:#a33;">Erro: ${err.message}</td></tr>`;
+      statusText.textContent = 'Erro ao gerar lista';
+    } finally {
+      btn.disabled = false;
+    }
+  });
+
+  document.getElementById('clearFiltersBtn').addEventListener('click', () => {
+    document.querySelectorAll('input[data-group="segmento"]').forEach(cb => cb.checked = false);
+    document.getElementById('filterUf').value = '';
+    document.getElementById('filterCidade').value = '';
+    document.getElementById('filterIdade').value = '';
+    document.getElementById('filterComEmail').checked = false;
+    document.getElementById('filterComTelefone').checked = false;
+    document.getElementById('filterComCelular').checked = false;
+    updateFgCount('segmento', document.getElementById('fgSegmentoCount'));
+    updateFgCount('contato', document.getElementById('fgContatoCount'));
+
+    // Zera também o resultado — evita disparar lista/exportação pra base errada
+    document.getElementById('statTotal').textContent = '—';
+    document.getElementById('statEmails').textContent = '—';
+    document.getElementById('statTelefones').textContent = '—';
+    document.getElementById('statCelulares').textContent = '—';
+    document.getElementById('resultadosTableBody').innerHTML =
+      '<tr><td colspan="6" style="padding:24px; text-align:center; color:var(--text-faint);">Filtros limpos — configure e clique em "Gerar Lista"</td></tr>';
+
+    document.getElementById('filtersStatusText').textContent = 'Configure os filtros e clique em "Gerar Lista"';
+  });
+
+  document.getElementById('copyEmailsBtn').addEventListener('click', async () => {
+    const btn = document.getElementById('copyEmailsBtn');
+    const original = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="ti ti-loader-2"></i>Buscando…';
+    try {
+      const params = buildParams({ mode: 'emails' });
+      const resp = await authFetch(`${EMPRESAS_API}?${params.toString()}`);
+      const data = await resp.json();
+      if (!resp.ok) throw new Error(data.error || 'Falha ao buscar e-mails');
+
+      const emails = data.emails;
+      if (emails.length === 0) {
+        btn.innerHTML = '<i class="ti ti-alert-circle"></i>Nenhum e-mail encontrado';
+        setTimeout(() => { btn.innerHTML = original; btn.disabled = false; }, 2500);
+        return;
+      }
+
+      const tamanhoLote = parseInt(document.getElementById('emailBatchSize').value, 10);
+      const lotes = tamanhoLote > 0 ? chunkArray(emails, tamanhoLote) : [emails];
+
+      btn.innerHTML = '<i class="ti ti-file-zip"></i>Gerando arquivo…';
+
+      if (lotes.length === 1) {
+        // Um único lote: baixa direto o .txt, sem precisar de zip
+        const blob = new Blob([lotes[0].join('\n')], { type: 'text/plain;charset=utf-8' });
+        baixarBlob(blob, 'emails-base-comercial.txt');
+      } else {
+        // Vários lotes: agrupa num .zip
+        const zip = new JSZip();
+        lotes.forEach((lote, i) => {
+          const nome = `emails-lote-${String(i + 1).padStart(2, '0')}.txt`;
+          zip.file(nome, lote.join('\n'));
+        });
+        const blob = await zip.generateAsync({ type: 'blob' });
+        baixarBlob(blob, 'emails-base-comercial.zip');
+      }
+
+      btn.innerHTML = `<i class="ti ti-check"></i>${emails.length.toLocaleString('pt-BR')} e-mails em ${lotes.length} arquivo(s)`;
+    } catch (err) {
+      btn.innerHTML = '<i class="ti ti-alert-circle"></i>Erro ao gerar';
+      console.error(err);
+    } finally {
+      setTimeout(() => { btn.innerHTML = original; btn.disabled = false; }, 3000);
+    }
+  });
+
+  function baixarBlob(blob, nomeArquivo) {
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = nomeArquivo;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    window.URL.revokeObjectURL(url);
+  }
+
+  document.getElementById('exportExcelBtn').addEventListener('click', async () => {
+    const btn = document.getElementById('exportExcelBtn');
+    const original = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="ti ti-loader-2"></i>Exportando…';
+    try {
+      const params = buildParams({ mode: 'export' });
+      const resp = await authFetch(`${EMPRESAS_API}?${params.toString()}`);
+      if (!resp.ok) throw new Error('Falha ao exportar');
+      const blob = await resp.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'lista-base-comercial.csv';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      alert('Erro ao exportar: ' + err.message);
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = original;
+    }
+  });
+</script>
+
+</body>
+</html>
