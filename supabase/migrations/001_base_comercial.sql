@@ -1,9 +1,13 @@
+create extension if not exists pg_trgm with schema extensions;
+
 create table if not exists public.empresas (
   id bigint generated always as identity primary key,
   cnpj text not null unique,
   razao_social text,
   nome_fantasia text,
   segmento text,
+  cnae_principal text,
+  descricao_cnae_principal text,
   porte text,
   cidade text,
   uf text,
@@ -22,7 +26,8 @@ create table if not exists public.empresas (
   constraint empresas_uf_formato check (uf is null or uf ~ '^[A-Z]{2}$'),
   constraint empresas_idade_valida check (idade_empresa_anos is null or idade_empresa_anos between 0 and 500),
   constraint empresas_capital_valido check (capital_social is null or capital_social >= 0),
-  constraint empresas_segmento_valido check (segmento is null or segmento in ('Transportadora', 'Parceiro Contábil')),
+  constraint empresas_cnae_principal_formato check (cnae_principal is null or cnae_principal ~ '^\d{7}$'),
+  constraint empresas_segmento_valido check (segmento is null or segmento in ('Transportadora', 'Construção Civil', 'Condomínio', 'Parceiro Contábil', 'Outros')),
   constraint empresas_porte_valido check (porte is null or porte in ('Micro', 'Pequeno', 'Médio', 'Grande'))
 );
 
@@ -46,6 +51,8 @@ create table if not exists public.transportes_usuarios (
 
 create index if not exists empresas_razao_social_idx on public.empresas (razao_social);
 create index if not exists empresas_segmento_porte_idx on public.empresas (segmento, porte);
+create index if not exists empresas_cnae_principal_prefix_idx on public.empresas (cnae_principal text_pattern_ops);
+create index if not exists empresas_descricao_cnae_trgm_idx on public.empresas using gin (descricao_cnae_principal extensions.gin_trgm_ops);
 create index if not exists empresas_uf_cidade_idx on public.empresas (uf, cidade);
 create index if not exists empresas_idade_idx on public.empresas (idade_empresa_anos);
 create index if not exists empresas_email_presente_idx on public.empresas (email) where email is not null;

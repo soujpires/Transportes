@@ -193,6 +193,7 @@
   .filters-grid{
     display:grid; grid-template-columns:1.3fr 0.8fr 0.8fr 1fr; gap:16px; margin-bottom:16px;
   }
+  .search-filters-grid{ grid-template-columns:1fr 1.4fr 0.7fr; }
   .field label{ font-size:11.5px; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:.03em; display:block; margin-bottom:8px; }
   .segment-chips{ display:flex; flex-wrap:wrap; gap:7px; }
   .chip{
@@ -360,6 +361,10 @@
     .import-features{ grid-template-columns:1fr 1fr; }
     .stat-grid{ grid-template-columns:1fr 1fr; }
   }
+  @media (max-width: 560px){
+    .filters-grid, .search-filters-grid{ grid-template-columns:1fr; }
+    .search-row{ flex-direction:column; }
+  }
 </style>
 </head>
 <body>
@@ -487,7 +492,7 @@
           <div class="search-row">
             <div class="search-input">
               <i class="ti ti-search"></i>
-              <input type="text" placeholder="Buscar por CNPJ, Razão Social, Nome Fantasia ou Sócio">
+              <input type="text" id="filterSearch" placeholder="Buscar por CNPJ, empresa, sócio, CNAE ou atividade">
             </div>
             <button class="btn btn-gold" id="gerarListaBtn"><i class="ti ti-list-details"></i>Gerar Lista</button>
           </div>
@@ -504,7 +509,11 @@
             <div class="filter-group-body">
               <div class="filter-group-body-inner">
                 <div class="fg-check-list">
+                  <label class="fg-check-item"><input type="checkbox" data-group="segmento" data-value="Transportadora|">Todas as Transportadoras<i class="ti ti-truck"></i></label>
                   <label class="fg-check-item"><input type="checkbox" data-group="segmento" data-value="Parceiro Contábil|">Parceiros Contábeis<i class="ti ti-calculator"></i></label>
+                  <label class="fg-check-item"><input type="checkbox" data-group="segmento" data-value="Construção Civil|">Construção Civil<i class="ti ti-building-community"></i></label>
+                  <label class="fg-check-item"><input type="checkbox" data-group="segmento" data-value="Condomínio|">Condomínios<i class="ti ti-buildings"></i></label>
+                  <label class="fg-check-item"><input type="checkbox" data-group="segmento" data-value="Outros|">Outros segmentos<i class="ti ti-category"></i></label>
                   <label class="fg-check-item"><input type="checkbox" data-group="segmento" data-value="Transportadora|Micro">Micro Transportadoras<span class="scale"><i style="height:4px"></i></span></label>
                   <label class="fg-check-item"><input type="checkbox" data-group="segmento" data-value="Transportadora|Pequeno">Pequenas Transportadoras<span class="scale"><i style="height:4px"></i><i style="height:7px"></i></span></label>
                   <label class="fg-check-item"><input type="checkbox" data-group="segmento" data-value="Transportadora|Médio">Médias Transportadoras<span class="scale"><i style="height:4px"></i><i style="height:7px"></i><i style="height:10px"></i></span></label>
@@ -514,7 +523,15 @@
             </div>
           </div>
 
-          <div class="filters-grid" style="grid-template-columns:1fr 1fr 1fr;">
+          <div class="filters-grid search-filters-grid">
+            <div class="field">
+              <label>Código CNAE principal</label>
+              <input class="text-field" id="filterCnaeCodigo" type="text" inputmode="numeric" placeholder="Ex.: 49.30-2/02 ou 49">
+            </div>
+            <div class="field">
+              <label>Descrição / atividade principal</label>
+              <input class="text-field" id="filterCnaeDescricao" type="text" placeholder="Ex.: transporte de carga">
+            </div>
             <div class="field">
               <label>Estado (UF)</label>
               <select id="filterUf"><option value="">Todos</option><option>GO</option><option>SP</option><option>MG</option><option>DF</option><option>MT</option></select>
@@ -541,9 +558,9 @@
             <div class="filter-group-body">
               <div class="filter-group-body-inner">
                 <div class="fg-check-list">
-                  <label class="fg-check-item"><input type="checkbox" id="filterComEmail">Apenas empresas com e-mail<i class="ti ti-mail"></i></label>
-                  <label class="fg-check-item"><input type="checkbox" id="filterComTelefone">Apenas empresas com telefone<i class="ti ti-phone"></i></label>
-                  <label class="fg-check-item"><input type="checkbox" id="filterComCelular">Apenas empresas com celular<i class="ti ti-device-mobile"></i></label>
+                  <label class="fg-check-item"><input type="checkbox" id="filterComEmail" data-group="contato">Apenas empresas com e-mail<i class="ti ti-mail"></i></label>
+                  <label class="fg-check-item"><input type="checkbox" id="filterComTelefone" data-group="contato">Apenas empresas com telefone<i class="ti ti-phone"></i></label>
+                  <label class="fg-check-item"><input type="checkbox" id="filterComCelular" data-group="contato">Apenas empresas com celular<i class="ti ti-device-mobile"></i></label>
                 </div>
               </div>
             </div>
@@ -586,10 +603,10 @@
 
         <table>
           <thead>
-            <tr><th>Razão Social</th><th>Segmento</th><th>Porte</th><th>Cidade/UF</th><th>Sócio</th><th>Contato</th></tr>
+            <tr><th>Razão Social</th><th>CNAE principal</th><th>Segmento</th><th>Porte</th><th>Cidade/UF</th><th>Sócio</th><th>Contato</th></tr>
           </thead>
           <tbody id="resultadosTableBody">
-            <tr><td colspan="6" style="padding:24px; text-align:center; color:var(--text-faint);">Nenhuma busca realizada ainda</td></tr>
+            <tr><td colspan="7" style="padding:24px; text-align:center; color:var(--text-faint);">Nenhuma busca realizada ainda</td></tr>
           </tbody>
         </table>
       </div>
@@ -888,8 +905,20 @@
 
   function segTag(segmento) {
     if (!segmento) return '<span class="seg-tag">—</span>';
-    const icon = segmento === 'Transportadora' ? 'ti-truck' : 'ti-calculator';
+    const icon = {
+      Transportadora: 'ti-truck',
+      'Parceiro Contábil': 'ti-calculator',
+      'Construção Civil': 'ti-building-community',
+      Condomínio: 'ti-buildings',
+      Outros: 'ti-category',
+    }[segmento] || 'ti-category';
     return `<span class="seg-tag"><i class="ti ${icon}"></i>${escapeHtml(segmento)}</span>`;
+  }
+
+  function formatarCnae(cnae) {
+    const code = String(cnae || '').replace(/\D/g, '');
+    if (code.length !== 7) return cnae || '—';
+    return `${code.slice(0, 2)}.${code.slice(2, 4)}-${code.slice(4, 5)}/${code.slice(5)}`;
   }
 
   function porteTag(porte) {
@@ -921,6 +950,8 @@
           <div class="base-detail">
             <div class="base-detail-inner">
               ${campo('Razão Social', emp.razao_social)}
+              ${campo('CNAE Principal', formatarCnae(emp.cnae_principal))}
+              ${campo('Atividade Principal', emp.descricao_cnae_principal)}
               ${campo('Cidade / UF', [emp.cidade, emp.uf].filter(Boolean).join(' / '))}
               ${campo('Colaboradores', emp.colaboradores_faixa)}
               ${campo('Faturamento', emp.faturamento_faixa)}
@@ -1073,6 +1104,9 @@
       .map(cb => cb.dataset.value);
     return {
       segmentos: segmentos.join(','),
+      q: document.getElementById('filterSearch').value.trim(),
+      cnaeCodigo: document.getElementById('filterCnaeCodigo').value.trim(),
+      cnaeDescricao: document.getElementById('filterCnaeDescricao').value.trim(),
       uf: document.getElementById('filterUf').value,
       cidade: document.getElementById('filterCidade').value.trim(),
       idade: document.getElementById('filterIdade').value,
@@ -1086,6 +1120,9 @@
     const f = coletarFiltros();
     const params = new URLSearchParams({ mode: 'search', ...extra });
     if (f.segmentos) params.set('segmentos', f.segmentos);
+    if (f.q) params.set('q', f.q);
+    if (f.cnaeCodigo) params.set('cnaeCodigo', f.cnaeCodigo);
+    if (f.cnaeDescricao) params.set('cnaeDescricao', f.cnaeDescricao);
     if (f.uf) params.set('uf', f.uf);
     if (f.cidade) params.set('cidade', f.cidade);
     if (f.idade) params.set('idade', f.idade);
@@ -1100,6 +1137,7 @@
     return `
       <tr>
         <td><strong>${escapeHtml(r.razao_social || '—')}</strong><div class="muted">${escapeHtml(r.cnpj)}</div></td>
+        <td><strong>${escapeHtml(formatarCnae(r.cnae_principal))}</strong><div class="muted">${escapeHtml(r.descricao_cnae_principal || '—')}</div></td>
         <td>${segTag(r.segmento)}</td>
         <td>${porteTag(r.porte)}</td>
         <td>${escapeHtml([r.cidade, r.uf].filter(Boolean).join(' / ') || '—')}</td>
@@ -1114,7 +1152,7 @@
     const tbody = document.getElementById('resultadosTableBody');
     btn.disabled = true;
     statusText.textContent = 'Gerando lista…';
-    tbody.innerHTML = '<tr><td colspan="6" style="padding:24px; text-align:center; color:var(--text-faint);">Carregando…</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="7" style="padding:24px; text-align:center; color:var(--text-faint);">Carregando…</td></tr>';
 
     try {
       const params = buildParams({});
@@ -1128,7 +1166,7 @@
       document.getElementById('statCelulares').textContent = data.stats.comCelular.toLocaleString('pt-BR');
 
       if (data.preview.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="6" style="padding:24px; text-align:center; color:var(--text-faint);">Nenhuma empresa encontrada com esses filtros</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="7" style="padding:24px; text-align:center; color:var(--text-faint);">Nenhuma empresa encontrada com esses filtros</td></tr>';
       } else {
         tbody.innerHTML = data.preview.map(renderResultRow).join('');
       }
@@ -1136,7 +1174,7 @@
         ? `Mostrando ${data.preview.length} de ${data.stats.total.toLocaleString('pt-BR')} — use "Exportar Excel" para a lista completa`
         : 'Lista gerada';
     } catch (err) {
-      tbody.innerHTML = `<tr><td colspan="6" style="padding:24px; text-align:center; color:#a33;">Erro: ${err.message}</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="7" style="padding:24px; text-align:center; color:#a33;">Erro: ${escapeHtml(err.message)}</td></tr>`;
       statusText.textContent = 'Erro ao gerar lista';
     } finally {
       btn.disabled = false;
@@ -1145,6 +1183,9 @@
 
   document.getElementById('clearFiltersBtn').addEventListener('click', () => {
     document.querySelectorAll('input[data-group="segmento"]').forEach(cb => cb.checked = false);
+    document.getElementById('filterSearch').value = '';
+    document.getElementById('filterCnaeCodigo').value = '';
+    document.getElementById('filterCnaeDescricao').value = '';
     document.getElementById('filterUf').value = '';
     document.getElementById('filterCidade').value = '';
     document.getElementById('filterIdade').value = '';
@@ -1160,7 +1201,7 @@
     document.getElementById('statTelefones').textContent = '—';
     document.getElementById('statCelulares').textContent = '—';
     document.getElementById('resultadosTableBody').innerHTML =
-      '<tr><td colspan="6" style="padding:24px; text-align:center; color:var(--text-faint);">Filtros limpos — configure e clique em "Gerar Lista"</td></tr>';
+      '<tr><td colspan="7" style="padding:24px; text-align:center; color:var(--text-faint);">Filtros limpos — configure e clique em "Gerar Lista"</td></tr>';
 
     document.getElementById('filtersStatusText').textContent = 'Configure os filtros e clique em "Gerar Lista"';
   });
